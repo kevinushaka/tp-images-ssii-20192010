@@ -8,6 +8,24 @@ from sklearn.metrics import confusion_matrix
 import pickle
 
 
+class Obj:
+    def __init__(self, name,result):
+        self.name = name
+        self.result=result
+
+def error():
+    print('\n# usage: python3 reco-images.py  ak [k1] [k2] [verbose]   (Apprentissage Kmeans)')
+    print('#        python3 reco-images.py  rk [verbose]               (Reconnaissance Kmeans)')
+    print('#        python3 reco-images.py  arl [k1] [k2] [verbose]    (Apprentissage Regression Logistique)')
+    print('#        python3 reco-images.py  rrl [verbose]              (Reconnaissance Regression Logistique)\n')
+    exit(1)
+################################################
+# usage: python3 reco-images.py  ak [k1] [k2] [verbose]   (Apprentissage Kmeans)
+#        python3 reco-images.py  rk [verbose]             (Reconnaissance Kmeans)
+#        python3 reco-images.py  arl [k1] [k2] [verbose]  (Apprentissage Regression Logistique)
+#        python3 reco-images.py  rrl [verbose]            (Reconnaissance Regression Logistique)
+
+
 ################################################
 #                                              #
 #                                              #
@@ -16,14 +34,7 @@ import pickle
 #                                              #
 ################################################
 
-def apprentissage_kmeans():
-    k1 = int(argv[2])
-    k2 = int(argv[3])
-
-    if argv[4] == "True":
-        verbose = True
-    else:
-        verbose = False
+def apprentissage_kmeans(listImg,k1,k2,verbose):
 
     lesSifts = np.empty(shape=(0, 128), dtype=float)  # array of all SIFT
     dimImg = []  # nb of SIFT per file
@@ -45,8 +56,8 @@ def apprentissage_kmeans():
 
         if verbose:
             # print(descriptors[0])
-            print("SIFT: ", descriptors.shape)
-        dimImg.append(descriptors.shape[0])
+            print("SIFT: ", keypoints)
+        dimImg.append(len(descriptors))
         lesSifts = np.append(lesSifts, descriptors, axis=0)
 
     # BOW initialization
@@ -87,17 +98,12 @@ def apprentissage_kmeans():
         pickle.dump(kmeans2, output, pickle.HIGHEST_PROTOCOL)
 
 
-def reconnaissance_kmeans(i):
+def reconnaissance_kmeans(i,verbose):
     # lecture
     with open("kmean1", "rb") as input:
         kmeans1saved = pickle.load(input)
 
     k1 = kmeans1saved.n_clusters
-
-    if argv[4] == "True":
-        verbose = True
-    else:
-        verbose = False
 
     lesSifts = np.empty(shape=(0, 128), dtype=float)  # array of all SIFT from all pictures
     dimImg = []
@@ -150,6 +156,8 @@ def reconnaissance_kmeans(i):
     if verbose:
         print("result of kmeans 2", prediction)
 
+    return prediction
+
 
 
 ################################################
@@ -160,14 +168,7 @@ def reconnaissance_kmeans(i):
 #                                              #
 ################################################
 
-def apprentissage_RegressionLogistique():
-    k1 = int(argv[2])
-    k2 = int(argv[3])
-
-    if argv[4] == "True":
-        verbose = True
-    else:
-        verbose = False
+def apprentissage_RegressionLogistique(k1,k2,verbose):
 
     lesSifts = np.empty(shape=(0, 128), dtype=float)  # array of all SIFT from all sounds
     dimImg = []  # nb of SIFT per file
@@ -233,23 +234,18 @@ def apprentissage_RegressionLogistique():
         pickle.dump(logisticRegr, output, pickle.HIGHEST_PROTOCOL)
 
 
-def reconnaissance_RegressionLogistique():
+def reconnaissance_RegressionLogistique(imageToTest,verbose):
     # lecture
     with open("kmean1", "rb") as input:
         kmeans1saved = pickle.load(input)
 
     k1 = kmeans1saved.n_clusters
 
-    if argv[4] == "True":
-        verbose = True
-    else:
-        verbose = False
-
     lesSifts = np.empty(shape=(0, 128), dtype=float)  # array of all SIFT
     dimImg = []
     # nb of SIFT per file
 
-    for i in listImgTest:
+    for i in imageToTest:
         if verbose:
             print("###", i, "###")
 
@@ -261,9 +257,9 @@ def reconnaissance_RegressionLogistique():
         keypoints, descriptors = sift.detectAndCompute(gray, None)
 
         if verbose:
-            print("Descriptors: ", descriptors.shape)
+            print("nb of keypoints: ", keypoints)
 
-        dimImg.append(descriptors.shape[0])
+        dimImg.append(len(descriptors))
         lesSifts = np.append(lesSifts, descriptors, axis=0)
 
     # On crée le premier kmean avec les SIFT
@@ -295,6 +291,7 @@ def reconnaissance_RegressionLogistique():
     prediction = logisticRegr.predict(bows)
     if verbose:
         print("result of logisticRegr", prediction)
+    return prediction
 
 
 ################################################
@@ -306,27 +303,56 @@ def reconnaissance_RegressionLogistique():
 ################################################
 
 #Nos Images références
-listImg = glob.glob("motos/*.jpg")
+listImg = glob.glob("train_motos/*.jpg")
 nbMotos = len(listImg) # Nombre d'élements dans la classe moto
-labels = [0]*nbMotos # On remplie label avec autant de 0 que de motos
+listImg += glob.glob("train_voitures/*.jpg")
 
-listImg += glob.glob("voitures/*.jpg")
+labels = [0]*nbMotos # On remplie label avec autant de 0 que de motos
 nbVoitures = len(listImg)-nbMotos # Nombre d'elements dans la classe voiture
 labels += [1]*nbVoitures # On remplie label avec autant de 1 que de voitures
 
+if len(argv)>4:
+    if argv[4] == "True":
+        log = True
+    else:
+        log = False
+elif len(argv)>2:
+    if argv[2] == "True":
+        log = True
+    else:
+        log = False
+elif len(argv)>1:
+    log=False
+else:
+    error()
 #Nos Images a testé
-listImgTest = glob.glob("Motos et Voiture pour reconnaissance/*.jpg")
+listImgTest = glob.glob("test/*.jpg")
 
 if argv[1] == "ak":
-    apprentissage_kmeans()
+    apprentissage_kmeans(listImg,int(argv[2]),int(argv[3]),log)
 elif argv[1] == "rk":
-    reconnaissance_kmeans(argv[5])
+    classes=[]
+    objs=[]
+    for img in listImgTest:
+        prediction=reconnaissance_kmeans(img,log)
+        if prediction not in classes:
+            classes.append(prediction)
+        objs.append(Obj(img,prediction))
+
+    nbClasse=0
+    for classe in classes:
+        print("#####Groupe "+str(nbClasse)+"######")
+        for obj in objs:
+            if obj.result==classe:
+                print(obj.name+" ")
+        nbClasse+=1        
 elif argv[1] == "arl":
-    apprentissage_RegressionLogistique()
+    apprentissage_RegressionLogistique(int(argv[2]),int(argv[3]),log)
 elif argv[1] == "rrl":
-    reconnaissance_RegressionLogistique()
+    prediction=reconnaissance_RegressionLogistique(listImgTest,log)
 else:
-    print("argument Inconnu !")
+    error();
+
 
 '''
 
