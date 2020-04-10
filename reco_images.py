@@ -20,6 +20,14 @@ def error():
     print('#        python3 reco-images.py  rrl [verbose]              (Reconnaissance Regression Logistique)\n')
     print('#        python3 reco-images.py  svm [verbose]              (SVM)\n')
     exit(1)
+
+def bool(str):
+    if str == "True":
+        return True
+    elif str=="False":
+        return False
+    else:
+        error()
 ################################################
 # usage: python3 reco-images.py  ak [k1] [k2] [verbose]   (Apprentissage Kmeans)
 #        python3 reco-images.py  rk [verbose]             (Reconnaissance Kmeans)
@@ -304,7 +312,7 @@ def reconnaissance_RegressionLogistique(imageToTest,verbose):
 #                                              #
 ################################################
 
-def svm():
+def svm(C):
     # pip3 install scikit-learn
     from sklearn import svm
     with open("bowsReg", "rb") as input:
@@ -326,25 +334,21 @@ def svm():
 ################################################
 
 #Nos Images références
-listImg = glob.glob("train_motos/*.jpg")
+listImg = glob.glob("train/motos/*.jpg")
 nbMotos = len(listImg) # Nombre d'élements dans la classe moto
-listImg += glob.glob("train_voitures/*.jpg")
+listImg += glob.glob("train/voitures/*.jpg")
 
 labels = [0]*nbMotos # On remplie label avec autant de 0 que de motos
 nbVoitures = len(listImg)-nbMotos # Nombre d'elements dans la classe voiture
 labels += [1]*nbVoitures # On remplie label avec autant de 1 que de voitures
-
-if len(argv)>4:
-    if argv[4] == "True":
-        log = True
-    else:
-        log = False
-elif len(argv)>2:
-    if argv[2] == "True":
-        log = True
-    else:
-        log = False
-elif len(argv)>1:
+log=False
+if len(argv)==5:
+    log=bool(argv[4])
+elif len(argv)==4:
+    log=bool(argv[3])
+elif len(argv)==3:
+    log=bool(argv[2])
+elif len(argv)==2:
     log=False
 else:
     error()
@@ -374,7 +378,7 @@ elif argv[1] == "arl":
 elif argv[1] == "rrl":
     prediction=reconnaissance_RegressionLogistique(listImgTest,log)
 elif argv[1] == "svm":
-    svm(log)
+    svm(1)
 else:
     error();
 
