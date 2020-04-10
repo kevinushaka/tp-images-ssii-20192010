@@ -18,6 +18,7 @@ def error():
     print('#        python3 reco-images.py  rk [verbose]               (Reconnaissance Kmeans)')
     print('#        python3 reco-images.py  arl [k1] [k2] [verbose]    (Apprentissage Regression Logistique)')
     print('#        python3 reco-images.py  rrl [verbose]              (Reconnaissance Regression Logistique)\n')
+    print('#        python3 reco-images.py  svm [verbose]              (SVM)\n')
     exit(1)
 ################################################
 # usage: python3 reco-images.py  ak [k1] [k2] [verbose]   (Apprentissage Kmeans)
@@ -146,7 +147,6 @@ def reconnaissance_kmeans(i,verbose):
         print("BOWs :\n", bows)
 
     # On fait la prédiction avec kmeans2saved
-
     # lecture
     with open("kmean2", "rb") as input:
         kmeans2saved = pickle.load(input)
@@ -168,7 +168,7 @@ def reconnaissance_kmeans(i,verbose):
 #                                              #
 ################################################
 
-def apprentissage_RegressionLogistique(k1,k2,verbose):
+def apprentissage_RegressionLogistique(k1,verbose):
 
     lesSifts = np.empty(shape=(0, 128), dtype=float)  # array of all SIFT from all sounds
     dimImg = []  # nb of SIFT per file
@@ -232,6 +232,8 @@ def apprentissage_RegressionLogistique(k1,k2,verbose):
         pickle.dump(kmeans1, output, pickle.HIGHEST_PROTOCOL)
     with open('sauvegarde.logr', 'wb') as output:
         pickle.dump(logisticRegr, output, pickle.HIGHEST_PROTOCOL)
+    with open('bowsReg', 'wb') as output:
+        pickle.dump(bows, output, pickle.HIGHEST_PROTOCOL)
 
 
 def reconnaissance_RegressionLogistique(imageToTest,verbose):
@@ -297,6 +299,27 @@ def reconnaissance_RegressionLogistique(imageToTest,verbose):
 ################################################
 #                                              #
 #                                              #
+#                   SVM                        #
+#                                              #
+#                                              #
+################################################
+
+def svm():
+    # pip3 install scikit-learn
+    from sklearn import svm
+    with open("bowsReg", "rb") as input:
+        bows = pickle.load(input)
+    X = bows
+    y = [0,1]
+    classif = svm.SVC(kernel='linear')
+    classif.fit(X, y)
+    labelsPredicted =classif.predict(bows)
+    print('prediction class for [2,2]', labelsPredicted)
+    print('support vectors: ', classif.support_vectors_)
+    print("Confusion matrix :\n", confusion_matrix(y, labelsPredicted))
+################################################
+#                                              #
+#                                              #
 #                   MAIN                       #
 #                                              #
 #                                              #
@@ -347,9 +370,11 @@ elif argv[1] == "rk":
                 print(obj.name+" ")
         nbClasse+=1        
 elif argv[1] == "arl":
-    apprentissage_RegressionLogistique(int(argv[2]),int(argv[3]),log)
+    apprentissage_RegressionLogistique(int(argv[2]),log)
 elif argv[1] == "rrl":
     prediction=reconnaissance_RegressionLogistique(listImgTest,log)
+elif argv[1] == "svm":
+    svm(log)
 else:
     error();
 
